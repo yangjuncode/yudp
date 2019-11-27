@@ -18,5 +18,6 @@ type YudpOption struct {
 	//0: new buffer every read,udpHandler no need additional processing for data parameter
 	// in high pps programm, this will cause high gc
 	//1: use yudp.pool, user should call PutDataSlice2Pool after processing
+	//2: use a global data slice, so every udpHandler call will overwrite the data
 	RecvDataSlicePolicy int
 }

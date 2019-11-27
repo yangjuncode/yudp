@@ -93,6 +93,17 @@ func (u *YudpConn) Listen(handler YudpHandler) {
 	udpAddr := YudpAddr{}
 
 	for {
+		switch u.Option.RecvDataSlicePolicy {
+		case 1:
+			buffer = GetDataSliceFromPool()
+		case 2:
+		//no need processing
+		case 0:
+			fallthrough
+		default:
+			buffer = make([]byte, mtu)
+
+		}
 		// Just read one packet at a time
 		n, rua, err := u.ReadFromUDP(buffer)
 		if err != nil {
