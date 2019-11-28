@@ -4,12 +4,12 @@ import "sync"
 
 var dataSlicePool = &sync.Pool{
 	New: func() interface{} {
-		return make([]byte, mtu)
+		return make([]byte, mtu,mtu)
 	},
 }
 
 func PutDataSlice2Pool(dataBuf []byte) {
-	dataBuf = dataBuf[:cap(dataBuf)]
+	//dataBuf = dataBuf[:cap(dataBuf)]
 	dataSlicePool.Put(dataBuf)
 }
 

@@ -153,7 +153,6 @@ func (u *YudpConn) Listen(handler YudpHandler) {
 	msgs, buffers, names := u.PrepareRawMessages(u.Option.UdpBatchSize)
 
 	for {
-		msgs, buffers, names = adjustMsgs(msgs, buffers, names, u.Option.RecvDataSlicePolicy)
 
 		n, err := u.ReadMulti(msgs)
 		if err != nil {
@@ -168,6 +167,9 @@ func (u *YudpConn) Listen(handler YudpHandler) {
 			handler(buffers[i][:msgs[i].Len], udpAddr)
 
 		}
+
+		msgs, buffers, names = adjustMsgs(msgs, buffers, names, u.Option.RecvDataSlicePolicy, n)
+
 	}
 }
 

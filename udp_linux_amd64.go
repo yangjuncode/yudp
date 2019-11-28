@@ -31,7 +31,7 @@ func (u *YudpConn) PrepareRawMessages(n int) ([]rawMessage, [][]byte, [][]byte) 
 	names := make([][]byte, n)
 
 	for i := range msgs {
-		buffers[i] = make([]byte, mtu)
+		buffers[i] = make([]byte, mtu, mtu)
 		names[i] = make([]byte, 0x1c) //TODO = sizeofSockaddrInet6
 
 		//TODO: this is still silly, no need for an array
@@ -49,20 +49,16 @@ func (u *YudpConn) PrepareRawMessages(n int) ([]rawMessage, [][]byte, [][]byte) 
 	return msgs, buffers, names
 }
 
-func adjustMsgs(msgs []rawMessage, buffers [][]byte, names [][]byte, policy int) ([]rawMessage, [][]byte, [][]byte) {
+func adjustMsgs(msgs []rawMessage, buffers [][]byte, names [][]byte, policy int, n int) ([]rawMessage, [][]byte, [][]byte) {
 	switch policy {
 	case 1:
 		for i := range msgs {
+			if i == n {
+				break
+			}
 			buffers[i] = GetDataSliceFromPool()
 
-			//TODO: this is still silly, no need for an array
-			vs := []iovec{
-				{Base: (*byte)(unsafe.Pointer(&buffers[i][0])), Len: uint64(len(buffers[i]))},
-			}
-
-			msgs[i].Hdr.Iov = &vs[0]
-			msgs[i].Hdr.Iovlen = uint64(len(vs))
-
+			msgs[i].Hdr.Iov.Base = (*byte)(unsafe.Pointer(&buffers[i][0]))
 		}
 
 		return msgs, buffers, names
@@ -72,16 +68,12 @@ func adjustMsgs(msgs []rawMessage, buffers [][]byte, names [][]byte, policy int)
 		fallthrough
 	default:
 		for i := range msgs {
-			buffers[i] = make([]byte, mtu)
-
-			//TODO: this is still silly, no need for an array
-			vs := []iovec{
-				{Base: (*byte)(unsafe.Pointer(&buffers[i][0])), Len: uint64(len(buffers[i]))},
+			if i == n {
+				break
 			}
+			buffers[i] = make([]byte, mtu, mtu)
 
-			msgs[i].Hdr.Iov = &vs[0]
-			msgs[i].Hdr.Iovlen = uint64(len(vs))
-
+			msgs[i].Hdr.Iov.Base = (*byte)(unsafe.Pointer(&buffers[i][0]))
 		}
 
 		return msgs, buffers, names
