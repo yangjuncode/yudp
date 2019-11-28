@@ -9,6 +9,7 @@ var dataSlicePool = &sync.Pool{
 }
 
 func PutDataSlice2Pool(dataBuf []byte) {
+	dataBuf = dataBuf[:cap(dataBuf)]
 	dataSlicePool.Put(dataBuf)
 }
 
