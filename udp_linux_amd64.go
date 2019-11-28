@@ -48,34 +48,3 @@ func (u *YudpConn) PrepareRawMessages(n int) ([]rawMessage, [][]byte, [][]byte) 
 
 	return msgs, buffers, names
 }
-
-func adjustMsgs(msgs []rawMessage, buffers [][]byte, names [][]byte, policy int, n int) ([]rawMessage, [][]byte, [][]byte) {
-	switch policy {
-	case 1:
-		for i := range msgs {
-			if i == n {
-				break
-			}
-			buffers[i] = GetDataSliceFromPool()
-
-			msgs[i].Hdr.Iov.Base = (*byte)(unsafe.Pointer(&buffers[i][0]))
-		}
-
-		return msgs, buffers, names
-	case 2:
-		return msgs, buffers, names
-	case 0:
-		fallthrough
-	default:
-		for i := range msgs {
-			if i == n {
-				break
-			}
-			buffers[i] = make([]byte, mtu, mtu)
-
-			msgs[i].Hdr.Iov.Base = (*byte)(unsafe.Pointer(&buffers[i][0]))
-		}
-
-		return msgs, buffers, names
-	}
-}
