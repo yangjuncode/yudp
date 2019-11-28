@@ -12,8 +12,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-//TODO: make it support reload as best you can!
-
 type YudpConn struct {
 	sysFd  int
 	Option YudpOption
