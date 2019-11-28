@@ -195,7 +195,7 @@ func adjustMsgs(msgs []rawMessage, buffers [][]byte, names [][]byte, policy int,
 			if i == hasUsedCount {
 				break
 			}
-			buffers[i] = make([]byte, mtu, mtu)
+			buffers[i] = make([]byte, YudpMTU, YudpMTU)
 
 			msgs[i].Hdr.Iov.Base = (*byte)(unsafe.Pointer(&buffers[i][0]))
 		}

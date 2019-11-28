@@ -89,7 +89,7 @@ type rawMessage struct {
 }
 
 func (u *YudpConn) Listen(handler YudpHandler) {
-	buffer := make([]byte, mtu)
+	buffer := make([]byte, YudpMTU)
 	udpAddr := YudpAddr{}
 
 	for {
@@ -101,7 +101,7 @@ func (u *YudpConn) Listen(handler YudpHandler) {
 		case 0:
 			fallthrough
 		default:
-			buffer = make([]byte, mtu)
+			buffer = make([]byte, YudpMTU, YudpMTU)
 
 		}
 		// Just read one packet at a time

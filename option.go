@@ -1,6 +1,6 @@
 package yudp
 
-const mtu = 9001
+const YudpMTU = 1472
 
 type YudpOption struct {
 	//listen interface,default is empty,listen on all interface

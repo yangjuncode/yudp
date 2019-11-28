@@ -4,7 +4,7 @@ import "sync"
 
 var dataSlicePool = &sync.Pool{
 	New: func() interface{} {
-		return make([]byte, mtu,mtu)
+		return make([]byte, YudpMTU, YudpMTU)
 	},
 }
 
