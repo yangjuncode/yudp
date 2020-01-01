@@ -74,10 +74,16 @@ func NewListener(opt YudpOption) (*YudpConn, error) {
 	}
 
 	if opt.RecvBufSize > 0 {
-		_ = udpCon.SetRecvBuffer(opt.RecvBufSize)
+		err := udpCon.SetRecvBuffer(opt.RecvBufSize)
+		if err != nil {
+			fmt.Println("udp SetRecvBuffer err:", err)
+		}
 	}
 	if opt.SendBufSize > 0 {
-		_ = udpCon.SetSendBuffer(opt.SendBufSize)
+		err := udpCon.SetSendBuffer(opt.SendBufSize)
+		if err != nil {
+			fmt.Println("udp SetSendBuffer err:", err)
+		}
 	}
 
 	if err = unix.SetsockoptInt(fd, unix.SOL_SOCKET, 0x0F, 1); err != nil {
