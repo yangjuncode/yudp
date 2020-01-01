@@ -53,14 +53,14 @@ type rawSockaddrAny struct {
 
 func NewListener(opt YudpOption) (*YudpConn, error) {
 	syscall.ForkLock.RLock()
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, syscall.IPPROTO_UDP)
+	fd, err := unix.Socket(unix.AF_INET, unix.SOCK_DGRAM, unix.IPPROTO_UDP)
 	if err == nil {
-		syscall.CloseOnExec(fd)
+		unix.CloseOnExec(fd)
 	}
 	syscall.ForkLock.RUnlock()
 
 	if err != nil {
-		syscall.Close(fd)
+		_ = unix.Close(fd)
 		return nil, err
 	}
 
@@ -74,57 +74,57 @@ func NewListener(opt YudpOption) (*YudpConn, error) {
 	}
 
 	if opt.RecvBufSize > 0 {
-		udpCon.SetRecvBuffer(opt.RecvBufSize)
+		_ = udpCon.SetRecvBuffer(opt.RecvBufSize)
 	}
 	if opt.SendBufSize > 0 {
-		udpCon.SetSendBuffer(opt.SendBufSize)
+		_ = udpCon.SetSendBuffer(opt.SendBufSize)
 	}
 
-	if err = syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, 0x0F, 1); err != nil {
+	if err = unix.SetsockoptInt(fd, unix.SOL_SOCKET, 0x0F, 1); err != nil {
 		return nil, err
 	}
 
-	if err = syscall.Bind(fd, &syscall.SockaddrInet4{Port: opt.Port}); err != nil {
+	if err = unix.Bind(fd, &unix.SockaddrInet4{Port: opt.Port}); err != nil {
 		return nil, err
 	}
 
 	// SO_REUSEADDR does not load balance so we use PORT
 	if opt.ReusePort {
-		if err = syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, unix.SO_REUSEPORT, 1); err != nil {
+		if err = unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_REUSEPORT, 1); err != nil {
 			return nil, err
 		}
 	}
 
 	//TODO: this may be useful for forcing threads into specific cores
-	//syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, unix.SO_INCOMING_CPU, x)
-	//v, err := syscall.GetsockoptInt(fd, syscall.SOL_SOCKET, unix.SO_INCOMING_CPU)
+	//unix.SetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_INCOMING_CPU, x)
+	//v, err := unix.GetsockoptInt(fd, unix.SOL_SOCKET, unix.SO_INCOMING_CPU)
 	//l.Println(v, err)
 
 	return udpCon, err
 }
 
 func (u *YudpConn) SetRecvBuffer(n int) error {
-	return syscall.SetsockoptInt(u.sysFd, syscall.SOL_SOCKET, syscall.SO_RCVBUFFORCE, n)
+	return unix.SetsockoptInt(u.sysFd, unix.SOL_SOCKET, unix.SO_RCVBUFFORCE, n)
 }
 
 func (u *YudpConn) SetSendBuffer(n int) error {
-	return syscall.SetsockoptInt(u.sysFd, syscall.SOL_SOCKET, syscall.SO_SNDBUFFORCE, n)
+	return unix.SetsockoptInt(u.sysFd, unix.SOL_SOCKET, unix.SO_SNDBUFFORCE, n)
 }
 
 func (u *YudpConn) GetRecvBuffer() (int, error) {
-	return syscall.GetsockoptInt(int(u.sysFd), syscall.SOL_SOCKET, syscall.SO_RCVBUF)
+	return unix.GetsockoptInt(int(u.sysFd), unix.SOL_SOCKET, unix.SO_RCVBUF)
 }
 
 func (u *YudpConn) GetSendBuffer() (int, error) {
-	return syscall.GetsockoptInt(int(u.sysFd), syscall.SOL_SOCKET, syscall.SO_SNDBUF)
+	return unix.GetsockoptInt(int(u.sysFd), unix.SOL_SOCKET, unix.SO_SNDBUF)
 }
 
 func (u *YudpConn) LocalAddr() (*YudpAddr, error) {
 	var rsa rawSockaddrAny
-	var rLen = syscall.SizeofSockaddrAny
+	var rLen = unix.SizeofSockaddrAny
 
-	_, _, err := syscall.Syscall(
-		syscall.SYS_GETSOCKNAME,
+	_, _, err := unix.Syscall(
+		unix.SYS_GETSOCKNAME,
 		uintptr(u.sysFd),
 		uintptr(unsafe.Pointer(&rsa)),
 		uintptr(unsafe.Pointer(&rLen)),
@@ -135,7 +135,7 @@ func (u *YudpConn) LocalAddr() (*YudpAddr, error) {
 	}
 
 	addr := &YudpAddr{}
-	if rsa.Addr.Family == syscall.AF_INET {
+	if rsa.Addr.Family == unix.AF_INET {
 		addr.Port = uint16(rsa.Addr.Data[0])<<8 + uint16(rsa.Addr.Data[1])
 		addr.IP = uint32(rsa.Addr.Data[2])<<24 + uint32(rsa.Addr.Data[3])<<16 + uint32(rsa.Addr.Data[4])<<8 + uint32(rsa.Addr.Data[5])
 	} else {
@@ -206,8 +206,8 @@ func adjustMsgs(msgs []rawMessage, buffers [][]byte, names [][]byte, policy int,
 
 func (u *YudpConn) ReadMulti(msgs []rawMessage) (int, error) {
 	for {
-		n, _, err := syscall.Syscall6(
-			syscall.SYS_RECVMMSG,
+		n, _, err := unix.Syscall6(
+			unix.SYS_RECVMMSG,
 			uintptr(u.sysFd),
 			uintptr(unsafe.Pointer(&msgs[0])),
 			uintptr(len(msgs)),
@@ -225,10 +225,10 @@ func (u *YudpConn) ReadMulti(msgs []rawMessage) (int, error) {
 }
 
 func (u *YudpConn) WriteTo(b []byte, addr *YudpAddr) error {
-	var rsa syscall.RawSockaddrInet4
+	var rsa unix.RawSockaddrInet4
 
 	//TODO: sometimes addr is nil!
-	rsa.Family = syscall.AF_INET
+	rsa.Family = unix.AF_INET
 	p := (*[2]byte)(unsafe.Pointer(&rsa.Port))
 	p[0] = byte(addr.Port >> 8)
 	p[1] = byte(addr.Port)
@@ -239,14 +239,14 @@ func (u *YudpConn) WriteTo(b []byte, addr *YudpAddr) error {
 	rsa.Addr[3] = byte(addr.IP & 0x000000ff)
 
 	for {
-		_, _, err := syscall.Syscall6(
-			syscall.SYS_SENDTO,
+		_, _, err := unix.Syscall6(
+			unix.SYS_SENDTO,
 			uintptr(u.sysFd),
 			uintptr(unsafe.Pointer(&b[0])),
 			uintptr(len(b)),
 			uintptr(0),
 			uintptr(unsafe.Pointer(&rsa)),
-			uintptr(syscall.SizeofSockaddrInet4),
+			uintptr(unix.SizeofSockaddrInet4),
 		)
 
 		if err != 0 {
